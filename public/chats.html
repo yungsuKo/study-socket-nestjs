@@ -1,4 +1,131 @@
 <!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Chat Room Example</title>
+  </head>
+  <body>
+    <h1>Chat Room Example</h1>
+    <label for="username-input">Enter your username:</label>
+    <input type="text" id="username-input" />
+    <button id="connect-button">Connect</button>
+
+    <hr />
+
+    <h2>Room List</h2>
+    <ul id="room-list"></ul>
+
+    <hr />
+
+    <h2>Chat Room</h2>
+    <div id="chat-container" style="display: none">
+      <h3 id="room-name"></h3>
+      <ul id="message-list"></ul>
+      <form id="message-form">
+        <input type="text" id="message-input" />
+        <button type="submit">Send</button>
+      </form>
+    </div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+      const socket = io(); // 소켓 생성
+
+      const usernameInput = document.getElementById('username-input');
+      const connectButton = document.getElementById('connect-button');
+      const roomList = document.getElementById('room-list');
+      const chatContainer = document.getElementById('chat-container');
+      const roomName = document.getElementById('room-name');
+      const messageList = document.getElementById('message-list');
+      const messageForm = document.getElementById('message-form');
+      const messageInput = document.getElementById('message-input');
+
+      let currentRoom = null; // 현재 채팅방
+
+      connectButton.addEventListener('click', () => {
+        const username = usernameInput.value;
+
+        // 소켓에 접속
+        socket.emit('join', username, (roomNames) => {
+          // 접속 완료 후, 생성된 채팅방 목록을 출력
+          for (const roomName of roomNames) {
+            const li = document.createElement('li');
+            const button = document.createElement('button');
+            button.textContent = roomName;
+            button.addEventListener('click', () => {
+              joinRoom(roomName);
+            });
+            li.appendChild(button);
+            roomList.appendChild(li);
+          }
+
+          // 채팅방에 참여하지 않은 상태에서는 채팅방 출력을 숨김
+          chatContainer.style.display = 'none';
+        });
+      });
+
+      function joinRoom(roomName) {
+        // 새로운 채팅방에 참여
+        socket.emit('join-room', roomName, (messageHistory) => {
+          // 채팅방에 참여 완료 후, 채팅방 UI 출력
+          currentRoom = roomName;
+          roomName.textContent = currentRoom;
+          messageList.innerHTML = ''; // 이전 대화 내용 초기화
+          for (const message of messageHistory) {
+            const li = document.createElement('li');
+            li.textContent = `[${message.username}] ${message.text}`;
+            messageList.appendChild(li);
+          }
+          chatContainer.style.display = 'block';
+        });
+      }
+
+      messageForm.addEventListener('submit', (event) => {
+        event.preventDefault();
+        const text = messageInput.value;
+        if (text.trim().length === 0) {
+          return;
+        }
+        // 메시지 전송
+        socket.emit('message', text);
+        messageInput.value = '';
+      });
+
+      // 메시지 수신
+      socket.on('message', (message) => {
+        if (message.room === currentRoom) {
+          const li = document.createElement('li');
+          li.textContent = `[${message.username}] ${message.text}`;
+          messageList.appendChild(li);
+        }
+      });
+
+      // 채팅방 종료
+      socket.on('leave-room', (roomName) => {
+        if (roomName === currentRoom) {
+          currentRoom = null;
+          roomName.textContent = '';
+          messageList.innerHTML = '';
+          chatContainer.style.display = 'none';
+        }
+      });
+
+      // 새로운 채팅방 생성
+      socket.on('new-room', (roomName) => {
+        const li = document.createElement('li');
+        const button = document.createElement('button');
+        button.textContent = roomName;
+        button.addEventListener('click', () => {
+          joinRoom(roomName);
+        });
+        li.appendChild(button);
+        roomList.appendChild(li);
+      });
+    </script>
+  </body>
+</html>
+
+<!-- <!DOCTYPE html>
 <html>
   <head>
     <meta charset="utf-8" />
@@ -48,4 +175,4 @@
       });
     </script>
   </body>
-</html>
+</html> -->

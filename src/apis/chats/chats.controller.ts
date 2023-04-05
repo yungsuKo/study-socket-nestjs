@@ -20,6 +20,6 @@ export class ChatsController {
 
   @Get()
   root(@Res() res: Response) {
-    res.sendFile(path.join(__dirname, '../../..', 'public', 'chats.html'));
+    res.sendFile(path.join(__dirname, '../../../..', 'public', 'chats.html'));
   }
 }
