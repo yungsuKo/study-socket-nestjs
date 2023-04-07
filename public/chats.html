@@ -14,6 +14,10 @@
 
     <h2>Room List</h2>
     <ul id="room-list"></ul>
+    <form id="room-form">
+      <input type="text" id="room-input" />
+      <button type="submit">Create Room</button>
+    </form>
 
     <hr />
 
@@ -34,6 +38,8 @@
       const usernameInput = document.getElementById('username-input');
       const connectButton = document.getElementById('connect-button');
       const roomList = document.getElementById('room-list');
+      const roomForm = document.getElementById('room-form');
+      const roomInput = document.getElementById('room-input');
       const chatContainer = document.getElementById('chat-container');
       const roomName = document.getElementById('room-name');
       const messageList = document.getElementById('message-list');
@@ -46,7 +52,7 @@
         const username = usernameInput.value;
 
         // 소켓에 접속
-        socket.emit('join', username, (roomNames) => {
+        socket.emit('join', { username, roomName }, (roomNames) => {
           // 접속 완료 후, 생성된 채팅방 목록을 출력
           for (const roomName of roomNames) {
             const li = document.createElement('li');
@@ -64,6 +70,30 @@
         });
       });
 
+      roomForm.addEventListener('submit', (event) => {
+        event.preventDefault();
+        const roomName = roomInput.value;
+        if (roomName.trim().length === 0) {
+          return;
+        }
+        // 새로운 채팅방 생성
+        socket.emit('new-room', roomName);
+        roomInput.value = '';
+      });
+
+      // 새로운 채팅방 생성
+      socket.on('create-room', (roomName) => {
+        const li = document.createElement('li');
+        const button = document.createElement('button');
+        console.log('실행되니?');
+        button.textContent = roomName;
+        button.addEventListener('click', () => {
+          joinRoom(roomName);
+        });
+        li.appendChild(button);
+        roomList.appendChild(li);
+      });
+
       function joinRoom(roomName) {
         // 새로운 채팅방에 참여
         socket.emit('join-room', roomName, (messageHistory) => {
@@ -79,6 +109,10 @@
           chatContainer.style.display = 'block';
         });
       }
+
+      socket.emit('join-room-success', (roomName) => {
+        console.log(roomName);
+      });
 
       messageForm.addEventListener('submit', (event) => {
         event.preventDefault();
@@ -108,18 +142,6 @@
           messageList.innerHTML = '';
           chatContainer.style.display = 'none';
         }
-      });
-
-      // 새로운 채팅방 생성
-      socket.on('new-room', (roomName) => {
-        const li = document.createElement('li');
-        const button = document.createElement('button');
-        button.textContent = roomName;
-        button.addEventListener('click', () => {
-          joinRoom(roomName);
-        });
-        li.appendChild(button);
-        roomList.appendChild(li);
       });
     </script>
   </body>

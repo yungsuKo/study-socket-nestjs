@@ -32,6 +32,14 @@ export class ChatGateway
     this.connectedClients.delete(client.id);
   }
 
+  @SubscribeMessage('join')
+  handleJoin(client: any, username: string, callback: Function): void {
+    console.log(`[${client.id}] ${username} joined`);
+
+    const roomNames = ['room1', 'room2', 'room3'];
+    callback(roomNames);
+  }
+
   // 방에 입장할 때 실행되는 메서드
   @SubscribeMessage('joinRoom')
   handleJoinRoom(

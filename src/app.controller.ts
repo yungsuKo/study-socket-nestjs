@@ -9,6 +9,6 @@ export class AppController {
 
   @Get()
   root(@Res() res: Response) {
-    res.sendFile(path.join(__dirname, '..', 'public', 'index.html'));
+    res.sendFile(path.join(__dirname, '../..', 'public', 'index.html'));
   }
 }

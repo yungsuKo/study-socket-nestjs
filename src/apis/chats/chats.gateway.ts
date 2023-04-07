@@ -10,41 +10,41 @@ import {
 import { Server, Socket } from 'socket.io';
 
 @WebSocketGateway()
-export class ChatsGateway
-  implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect
-{
+// implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect
+export class ChatsGateway {
   @WebSocketServer()
   server: Server;
 
   private connectedClients = new Map<string, string>();
+  private readonly rooms = new Map<string, Set<Socket>>();
 
-  afterInit(server: Server) {
-    console.log('Socket initialized');
+  // afterInit(server: Server) {
+  //   console.log('Socket initialized');
+  // }
+
+  // // 소켓 연결이 성공했을 때 실행되는 메서드
+  // handleConnection(client: Socket, ...args: any[]) {
+  //   console.log(`Client connected: ${client.id}`);
+  // }
+
+  // handleDisconnect(client: Socket) {
+  //   console.log(`Client disconnected: ${client.id}`);
+  //   this.connectedClients.delete(client.id);
+  // }
+
+  @SubscribeMessage('new-room')
+  async createRoom(client: any, roomName: string): Promise<string> {
+    this.rooms.set(roomName, new Set<Socket>([client]));
+    client.emit('create-room', roomName);
+    return roomName;
   }
-
-  // 소켓 연결이 성공했을 때 실행되는 메서드
-  handleConnection(client: Socket, ...args: any[]) {
-    console.log(`Client connected: ${client.id}`);
-  }
-
-  handleDisconnect(client: Socket) {
-    console.log(`Client disconnected: ${client.id}`);
-    this.connectedClients.delete(client.id);
-  }
-
-  @SubscribeMessage('createRoom')
-  async createRoom(socket: Socket, data: string) {
-    await socket.join('aRoom');
-    console.log(data);
-    socket.to('aRoom').emit('roomCreated', { room: 'aRoom' });
-  }
-
   // 방에 입장할 때 실행되는 메서드
   @SubscribeMessage('join')
   handleJoinRoom(
     client: Socket,
     payload: { roomName: string; username: string },
   ) {
+    console.log('join', payload);
     const { roomName, username } = payload;
 
     client.join(roomName); // 방에 클라이언트를 추가
@@ -63,6 +63,7 @@ export class ChatsGateway
   handleJoinsRoom(client: Socket, roomName: string) {
     client.join(roomName);
     client.emit('join-room-success', roomName);
+    return roomName;
   }
 
   // 1. 상품별로 room을 만들어야 할 듯.
