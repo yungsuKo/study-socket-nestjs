@@ -6,7 +6,11 @@
   </head>
   <body>
     <h1>Chat Room Example</h1>
-
+    <form id="user-form">
+      <input type="text" id="username-input" />
+      <button type="submit">Set Username</button>
+    </form>
+    <div id="username-view"></div>
     <hr />
 
     <h2>Room List</h2>
@@ -24,7 +28,7 @@
 
     <h2>Chat Room</h2>
     <div id="chat-container" style="display: none">
-      <h3 id="room-name"></h3>
+      <h3 id="room-title"></h3>
       <ul id="message-list"></ul>
       <form id="message-form">
         <input type="text" id="message-input" />
@@ -35,38 +39,32 @@
     <script src="/socket.io/socket.io.js"></script>
     <script>
       const socket = io(); // 소켓 생성
-      var username = 'tom';
+      const userForm = document.getElementById('user-form');
       const usernameInput = document.getElementById('username-input');
-      const connectButton = document.querySelector('.join-btn');
+      const usernameView = document.getElementById('username-view');
+      let connectButtons = document.querySelectorAll('.join-btn');
       const roomList = document.getElementById('room-list');
       const roomForm = document.getElementById('room-form');
       const roomInput = document.getElementById('room-input');
       const chatContainer = document.getElementById('chat-container');
-      const roomName = document.getElementById('room-name');
+      const roomTitle = document.getElementById('room-title');
       const messageList = document.getElementById('message-list');
       const messageForm = document.getElementById('message-form');
       const messageInput = document.getElementById('message-input');
-      console.log(connectButton);
       let currentRoom = null; // 현재 채팅방
-      connectButton.addEventListener('click', (e) => {
-        console.log(e.target.id);
-        // 소켓에 접속
-        socket.emit('join', { username, roomName }, (roomNames) => {
-          // 접속 완료 후, 생성된 채팅방 목록을 출력
-          for (const roomName of roomNames) {
-            const li = document.createElement('li');
-            const button = document.createElement('button');
-            button.textContent = roomName;
-            button.addEventListener('click', () => {
-              joinRoom(roomName);
-            });
-            li.appendChild(button);
-            roomList.appendChild(li);
-          }
+      let userName = null; // 현재 사용자
+      let messageHistory = []; // 현재 채팅방의 메시지 기록
 
-          // 채팅방에 참여하지 않은 상태에서는 채팅방 출력을 숨김
-          chatContainer.style.display = 'none';
-        });
+      userForm.addEventListener('submit', (event) => {
+        event.preventDefault();
+        userName = usernameInput.value;
+        if (userName.trim().length === 0) {
+          return;
+        }
+        const h2 = document.createElement('h2');
+        h2.textContent = userName;
+        usernameView.append(h2);
+        usernameInput.value = '';
       });
 
       roomForm.addEventListener('submit', (event) => {
@@ -86,32 +84,37 @@
         const button = document.createElement('button');
         console.log('실행되니?');
         button.textContent = roomName;
-        button.addEventListener('click', () => {
-          joinRoom(roomName);
-        });
+        button.id = roomName;
+        button.className = 'join-btn';
         li.appendChild(button);
         roomList.appendChild(li);
+        connectButtons = document.querySelectorAll('.join-btn');
+        console.log(connectButtons);
       });
 
-      // function joinRoom(roomName) {
-      //   // 새로운 채팅방에 참여
-      //   socket.emit('join-room', roomName, (messageHistory) => {
-      //     // 채팅방에 참여 완료 후, 채팅방 UI 출력
-      //     currentRoom = roomName;
-      //     roomName.textContent = currentRoom;
-      //     messageList.innerHTML = ''; // 이전 대화 내용 초기화
-      //     for (const message of messageHistory) {
-      //       const li = document.createElement('li');
-      //       li.textContent = `[${message.username}] ${message.text}`;
-      //       messageList.appendChild(li);
-      //     }
-      //     chatContainer.style.display = 'block';
-      //   });
-      // }
+      for (const connectButton of connectButtons) {
+        console.log(connectButtons);
+        connectButton.addEventListener('click', (e) => {
+          console.log(e.target.textContent);
+          const roomName = e.target.textContent;
+          // 소켓에 접속
+          socket.emit('join-room', { userName, roomName }, (roomName) => {
+            console.log(roomName);
+            currentRoom = roomName;
+            console.log(`${roomName}에 연결완료`);
 
-      socket.emit('join-room-success', (roomName) => {
-        console.log(`${roomName}에 연결완료`);
-      });
+            // 접속 완료 후, 생성된 채팅방 목록을 출력
+            // button.addEventListener('click', () => {
+            //   joinRoom(roomName);
+            // });
+            // 채팅방에 참여하지 않은 상태에서는 채팅방 출력을 숨김
+          });
+          roomTitle.textContent = roomName;
+          chatContainer.style.display = 'block';
+        });
+      }
+
+      // socket.on('join-room-success', (roomName) => {});
 
       messageForm.addEventListener('submit', (event) => {
         event.preventDefault();
@@ -120,15 +123,19 @@
           return;
         }
         // 메시지 전송
-        socket.emit('message', text);
+        roomName = roomTitle.textContent;
+        socket.emit('message', { text, roomName });
         messageInput.value = '';
       });
 
       // 메시지 수신
       socket.on('message', (message) => {
-        if (message.room === currentRoom) {
+        messageList.innerHTML = ''; // 이전 대화 내용 초기화
+        messageHistory.push(message); // 메시지 기록
+        console.log(messageHistory);
+        for (const i of messageHistory) {
           const li = document.createElement('li');
-          li.textContent = `[${message.username}] ${message.text}`;
+          li.textContent = `[${i.userName}] ${i.text}`;
           messageList.appendChild(li);
         }
       });

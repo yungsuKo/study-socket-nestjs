@@ -8,9 +8,9 @@ import {
 import { Socket, Server } from 'socket.io';
 import { Logger } from '@nestjs/common';
 
-@WebSocketGateway({ namespace: '/chat' })
+@WebSocketGateway()
 export class ChatsGateway implements OnGatewayInit {
-  @WebSocketServer() wss: Server;
+  @WebSocketServer() server: Server;
 
   private logger: Logger = new Logger('ChatGateway');
 
@@ -18,23 +18,38 @@ export class ChatsGateway implements OnGatewayInit {
     this.logger.log('Initialized!');
   }
 
-  @SubscribeMessage('chatToServer')
-  handleMessage(
-    client: Socket,
-    message: { sender: string; room: string; message: string },
-  ) {
-    this.wss.to(message.room).emit('chatToClient', message);
+  public handleConnection(client: Socket): void {
+    console.log('connected', client.id);
+    client.leave(client.id);
+    client.data.roomId = `room:lobby`;
+    client.join('room:lobby');
   }
 
-  @SubscribeMessage('joinRoom')
-  handleRoomJoin(client: Socket, room: string) {
-    client.join(room);
-    client.emit('joinedRoom', room);
+  @SubscribeMessage('new-room')
+  handleNewRoom(client: Socket, roomName: string) {
+    client.emit('create-room', roomName);
   }
 
-  @SubscribeMessage('leaveRoom')
-  handleRoomLeave(client: Socket, room: string) {
-    client.leave(room);
-    client.emit('leftRoom', room);
+  @SubscribeMessage('message')
+  handleMessage(client: Socket, { text, roomName }) {
+    console.log(text);
+    console.log('connected', client.id);
+    const userName = client.data.userName;
+    client.to(roomName).emit('message', { text, userName });
+  }
+
+  @SubscribeMessage('join-room')
+  handleRoomJoin(client: Socket, { userName, roomName }) {
+    console.log('join room', roomName, userName);
+    client.join(roomName);
+    client.data.roomId = roomName;
+    client.data.userName = userName;
+    // client.emit('join-room-success', roomName);
+  }
+
+  @SubscribeMessage('leave-room')
+  handleRoomLeave(client: Socket, roomName: string) {
+    client.leave(roomName);
+    client.emit('leftRoom', roomName);
   }
 }
