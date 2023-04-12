@@ -38,7 +38,7 @@
 
     <script src="/socket.io/socket.io.js"></script>
     <script>
-      const socket = io(); // 소켓 생성
+      const socket = io('/chats'); // 소켓 생성
       const userForm = document.getElementById('user-form');
       const usernameInput = document.getElementById('username-input');
       const usernameView = document.getElementById('username-view');

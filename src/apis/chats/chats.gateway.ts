@@ -8,7 +8,7 @@ import {
 import { Socket, Server } from 'socket.io';
 import { Logger } from '@nestjs/common';
 
-@WebSocketGateway()
+@WebSocketGateway({ namespace: 'chats' })
 export class ChatsGateway implements OnGatewayInit {
   @WebSocketServer() server: Server;
 
@@ -19,7 +19,6 @@ export class ChatsGateway implements OnGatewayInit {
   }
 
   public handleConnection(client: Socket): void {
-    console.log('connected', client.id);
     client.leave(client.id);
     client.data.roomId = `room:lobby`;
     client.join('room:lobby');
@@ -32,7 +31,6 @@ export class ChatsGateway implements OnGatewayInit {
 
   @SubscribeMessage('message')
   handleMessage(client: Socket, { text, roomName }) {
-    console.log(text);
     console.log('connected', client.id);
     const userName = client.data.userName;
     client.to(roomName).emit('message', { text, userName });
