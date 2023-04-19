@@ -18,10 +18,12 @@ export class ChatsGateway implements OnGatewayInit {
     this.logger.log('Initialized!');
   }
 
-  public handleConnection(client: Socket): void {
-    client.leave(client.id);
-    client.data.roomId = `room:lobby`;
-    client.join('room:lobby');
+  handleConnection(client: Socket): void {
+    console.log(`Client connected: ${client.id}`);
+  }
+
+  handleDisconnect(client: Socket) {
+    console.log(`Client disconnected: ${client.id}`);
   }
 
   @SubscribeMessage('new-room')
